@@ -1,0 +1,220 @@
+.data
+snake:		.byte 	4, 31, 5, 31, 6, 31, 7, 31, 8, 31, 9, 31, 10, 31, 11, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+snake_head:	.byte	11, 31
+snake_tail:	.byte	4, 31
+
+gameboard:	.asciiz	"*********************************************  *****************",
+			              "*                                                              *",
+			              "*                                                              *",
+			"*                         **************                       *",	
+			"*                         *                                    *",
+			"*                         * ************                       *",
+			"*                         * *                                  *",
+			"*                         * *                                  *",
+			"*                         * *                                  *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                              **************                  *",
+			"*                              *            *                  *",
+			"*                              *            *                  *",
+			"*                              *            *                  *",
+			"*                              *            *                  *",
+			"*                                     *******                  *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*                                                              *",
+			"*********************************************  *****************"		
+					
+.text
+	li	$v0, 30		
+	syscall
+	move	$s3, $a0	#GLOBAL TIME KEEPER YAY
+	
+	la	$s0, gameboard	#$s0 holds address of gameboard
+	lbu	$s1, 0($s0)	#$s1 holds value at position (0,0)	
+	addi	$a0, $0, 0	#$a0 holds counter for x
+	addi	$a1, $0, 0 	#$a1 holds counter for y 
+	li	$a2, 1		#$a2, the color argument is set to red
+create_gameboard:
+	beq	$s1, '*', setLED	#branch if $s1 contains the value *
+	beq	$a1, 64, exit		#Exit if end of gameboard is reached (y=64)
+	beq	$s1, $0, next_row	#branch if null is reached
+	addi	$s0, $s0, 1		#Increase address of gameboard by 1 byte
+	addi	$a0, $a0, 1		#Increase x by 1
+	lbu	$s1, 0($s0)		#Grabs (x+1, 0)
+	j	create_gameboard
+
+setLED:
+	jal	_setLED
+	addi	$a0, $a0, 1		#Increase x by 1
+	addi 	$s0, $s0, 1		
+	lbu	$s1, 0($s0)		#Load (x+1, y)
+	j	create_gameboard
+
+next_row:
+	addi	$a1, $a1, 1		#Add 1 to counter y
+	addi	$a0, $0, 0		#Reset x to 0 for new row
+	addi	$s0, $s0, 1
+	lbu	$s1, 0($s0)		#Load (x+1, y+1)
+	j	create_gameboard
+	
+exit:
+	#li	$v0, 10
+	#syscall 
+	
+
+	la	$s0, snake		#get address of snake
+	la	$s1, snake_head		#get address of snake_head
+	la	$s2, snake_tail		#get address of snake_tail
+	li	$a2, 2			#Set to yellow
+snakey:
+		
+	lbu	$a0, 0($s1)		#Set x to 11
+	addi	$s1, $s1, 1
+	lbu	$a1, 0($s1)		#Set y to 31
+
+ok_mr_snake:			#check if snake can travel to this coordinate
+	jal	_getLED
+	beq	$v0, 0, go_mr_snake
+	beq	$v0, 3, eat_a_frog
+	beq	$v0, 2, hit_wall_right
+	beq	$v0, 1, exit2
+#	li	$v0, 10
+#	syscall
+
+go_mr_snake:
+	li 	$v0,4
+	syscall
+	
+	jal 	_setLED
+	addi	$s1, $s1, 1
+	j	snakey
+	li	$v0, 10
+	syscall 
+
+
+eat_a_frog:
+hit_wall_right:
+exit2:
+	li	$v0, 10
+	syscall
+
+
+
+
+
+
+
+
+
+
+
+# _setLED and _getLED functions for Keypad and LED Display Simulator (64x64)
+#
+# These functions may be used in your CS/CoE 0447 Project 1.
+# They provide a convenient interface to the Keypad and LED Display Simulator
+# extension (64x64) in MARS 4.4-Pitt.1.  For arguments and return values,
+# read the comments above each; call them like any other MIPS function.
+#
+# If you're really interested, look through the code to show yourself
+# how it works, or even practice writing these yourself!  You know
+# all the pieces; try fitting them together!
+
+
+	# void _setLED(int x, int y, int color)
+	#   sets the LED at (x,y) to color
+	#   color: 0=off, 1=red, 2=yellow, 3=green
+	#
+	# arguments: $a0 is x, $a1 is y, $a2 is color
+	# trashes:   $t0-$t3
+	# returns:   none
+	#
+_setLED:
+	# byte offset into display = y * 16 bytes + (x / 4)
+	sll	$t0,$a1,4      # y * 16 bytes
+	srl	$t1,$a0,2      # x / 4
+	add	$t0,$t0,$t1    # byte offset into display
+	li	$t2,0xffff0008 # base address of LED display
+	add	$t0,$t2,$t0    # address of byte with the LED
+	# now, compute led position in the byte and the mask for it
+	andi	$t1,$a0,0x3    # remainder is led position in byte
+	neg	$t1,$t1        # negate position for subtraction
+	addi	$t1,$t1,3      # bit positions in reverse order
+	sll	$t1,$t1,1      # led is 2 bits
+	# compute two masks: one to clear field, one to set new color
+	li	$t2,3		
+	sllv	$t2,$t2,$t1
+	not	$t2,$t2        # bit mask for clearing current color
+	sllv	$t1,$a2,$t1    # bit mask for setting color
+	# get current LED value, set the new field, store it back to LED
+	lbu	$t3,0($t0)     # read current LED value	
+	and	$t3,$t3,$t2    # clear the field for the color
+	or	$t3,$t3,$t1    # set color field
+	sb	$t3,0($t0)     # update display
+	jr	$ra
+	
+	# int _getLED(int x, int y)
+	#   returns the value of the LED at position (x,y)
+	#
+	#  arguments: $a0 holds x, $a1 holds y
+	#  trashes:   $t0-$t2
+	#  returns:   $v0 holds the value of the LED (0, 1, 2 or 3)
+	#
+_getLED:
+	# byte offset into display = y * 16 bytes + (x / 4)
+	sll  $t0,$a1,4      # y * 16 bytes
+	srl  $t1,$a0,2      # x / 4
+	add  $t0,$t0,$t1    # byte offset into display
+	la   $t2,0xffff0008
+	add  $t0,$t2,$t0    # address of byte with the LED
+	# now, compute bit position in the byte and the mask for it
+	andi $t1,$a0,0x3    # remainder is bit position in byte
+	neg  $t1,$t1        # negate position for subtraction
+	addi $t1,$t1,3      # bit positions in reverse order
+    	sll  $t1,$t1,1      # led is 2 bits
+	# load LED value, get the desired bit in the loaded byte
+	lbu  $t2,0($t0)
+	srlv $t2,$t2,$t1    # shift LED value to lsb position
+	andi $v0,$t2,0x3    # mask off any remaining upper bits
+	jr   $ra
